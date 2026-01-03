@@ -1,0 +1,46 @@
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
+
+class NotificationManager {
+  static final FirebaseMessaging _firebaseMessaging =
+      FirebaseMessaging.instance;
+
+  static Future<void> initialize() async {
+    // Request permission for iOS
+    NotificationSettings settings = await _firebaseMessaging.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+
+    if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+      if (kDebugMode) {
+        print('User granted permission');
+      }
+    } else {
+      if (kDebugMode) {
+        print('User declined or has not accepted permission');
+      }
+    }
+
+    // Handlers
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      if (kDebugMode) {
+        print('Got a message whilst in the foreground!');
+        print('Message data: ${message.data}');
+      }
+
+      if (message.notification != null) {
+        if (kDebugMode) {
+          print(
+            'Message also contained a notification: ${message.notification}',
+          );
+        }
+      }
+    });
+  }
+
+  static Future<String?> getToken() async {
+    return await _firebaseMessaging.getToken();
+  }
+}
