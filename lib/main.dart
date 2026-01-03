@@ -8,12 +8,16 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'features/auth/data/datasources/auth_remote_data_source.dart';
 import 'features/auth/data/repositories/auth_repository_impl.dart';
 import 'features/auth/domain/usecases/login.dart';
-import 'features/auth/presentation/pages/login_page.dart';
 import 'features/auth/presentation/providers/auth_provider.dart';
 import 'features/notifications/data/datasources/notification_remote_data_source.dart';
 import 'features/notifications/data/repositories/notification_repository_impl.dart';
 import 'features/notifications/domain/usecases/update_device_token.dart';
 import 'features/notifications/presentation/manager/notification_manager.dart';
+
+import 'package:go_router/go_router.dart';
+import 'core/router/app_router.dart';
+
+// ... (other imports)
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,9 +25,6 @@ void main() async {
   // Initialize Firebase
   // IMPORTANT: Make sure you have added google-services.json (Android) and GoogleService-Info.plist (iOS)
   await Firebase.initializeApp();
-
-  // Initialize Notification Manager (Permissions, Listeners)
-  await NotificationManager.initialize();
 
   // External Dependencies
   final sharedPreferences = await SharedPreferences.getInstance();
@@ -53,34 +54,43 @@ void main() async {
   final loginUseCase = Login(authRepository);
   final updateDeviceTokenUseCase = UpdateDeviceToken(notificationRepository);
 
+  // Providers
+  final authProvider = AuthProvider(
+    loginUseCase: loginUseCase,
+    updateDeviceTokenUseCase: updateDeviceTokenUseCase,
+  );
+
+  // Router
+  final appRouter = AppRouter(authProvider);
+
+  // Initialize Notification Manager with Router
+  await NotificationManager.initialize(router: appRouter.router);
+
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(
-          create: (_) => AuthProvider(
-            loginUseCase: loginUseCase,
-            updateDeviceTokenUseCase: updateDeviceTokenUseCase,
-          ),
-        ),
+        ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
       ],
-      child: const MyApp(),
+      child: MyApp(router: appRouter.router),
     ),
   );
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final GoRouter router;
+
+  const MyApp({super.key, required this.router});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
       debugShowCheckedModeBanner: false,
       title: 'Flutter Clean Arch Login & FCM',
+      routerConfig: router,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const LoginPage(),
     );
   }
 }

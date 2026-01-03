@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../providers/auth_provider.dart';
 
 class LoginPage extends StatefulWidget {
@@ -27,10 +28,13 @@ class _LoginPageState extends State<LoginPage> {
 
             if (authProvider.status == AuthStatus.authenticated) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
-                // Navigate to home or show success
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Login Successful!')),
                 );
+                // GoRouter manages redirection based on auth state, but we can also explicity go
+                // effectively, the redirect listener in AppRouter should handle this anyway,
+                // but explicit navigation is also fine for clarity.
+                // context.go('/home'); // Optional, since redirect handles it
               });
             }
 

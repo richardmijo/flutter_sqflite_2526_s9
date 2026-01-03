@@ -52,4 +52,11 @@ class AuthProvider extends ChangeNotifier {
       },
     );
   }
+
+  void logout() {
+    _status = AuthStatus.initial;
+    _user = null;
+    _errorMessage = null;
+    notifyListeners();
+  }
 }
