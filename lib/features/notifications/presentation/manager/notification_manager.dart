@@ -2,7 +2,9 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/database/database_helper.dart';
 import '../../../../core/router/app_router.dart';
+import '../../data/models/notification_model.dart';
 
 class NotificationManager {
   static final FirebaseMessaging _firebaseMessaging =
@@ -34,7 +36,7 @@ class NotificationManager {
     );
 
     // Handlers
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
       if (kDebugMode) {
         print('Got a message whilst in the foreground!');
         print('Message data: ${message.data}');
@@ -46,6 +48,14 @@ class NotificationManager {
             'Message also contained a notification: ${message.notification}',
           );
         }
+
+        // Save to SQLite
+        final notificationModel = NotificationModel(
+          title: message.notification?.title ?? 'No Title',
+          body: message.notification?.body ?? 'No Body',
+          date: DateTime.now().toIso8601String(),
+        );
+        await DatabaseHelper().insertNotification(notificationModel);
 
         // Show dialog using global navigator key
         final context = AppRouter.navigatorKey.currentContext;
@@ -64,6 +74,21 @@ class NotificationManager {
             ),
           );
         }
+      }
+    });
+
+    // Handle background messages that are tapped
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) async {
+      // Also save when opened if not already saved (optional, usually saved on receipt)
+      // But wait, onMessage only fires in foreground.
+      // Background messages are handled by system.
+      // Does onBackgroundMessage exist? Yes, but it must be a top-level function.
+      // For simplicity, we are handling onMessage (foreground) locally.
+      // If we want to save background messages, we need a background handler.
+      // Let's stick to foreground for now or add a background handler later if requested.
+
+      if (router != null) {
+        _handleMessage(message, router);
       }
     });
 
